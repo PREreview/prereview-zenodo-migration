@@ -1,0 +1,16 @@
+{
+  "name": "arxiv-ts",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "dependencies": {
+    "identifiers-arxiv": "^0.1.1",
+    "url-ts": "*"
+  },
+  "peerDependencies": {
+    "fp-ts": "^2.11.8",
+    "io-ts": "^2.2.16"
+  },
+  "devDependencies": {
+    "@types/identifiers-arxiv": "^0.1.0"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "name": "process-ts",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "dependencies": {
+    "chalk": "^4.1.2",
+    "fp-ts-std": "^0.13.1"
+  },
+  "peerDependencies": {
+    "fp-ts": "^2.11.8",
+    "io-ts": "^2.2.16"
+  }
+}
