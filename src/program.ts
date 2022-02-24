@@ -39,7 +39,16 @@ function getRecordId(review: FullReview) {
     review.doi,
     E.fromNullable(new Error('No DOI')),
     RTE.fromEither,
-    RTE.orElseFirstW(() => pipe({ reviewId: review.uuid }, l.warnP('No DOI'), R.map(TE.rightIO))),
+    RTE.orElseFirstW(() =>
+      pipe(
+        {
+          preprintId: review.preprint.handle.identifier,
+          reviewId: review.uuid,
+        },
+        l.warnP('No DOI'),
+        R.map(TE.rightIO),
+      ),
+    ),
     RTE.matchE(() => RTE.right(O.none), flow(getRecordIdFromDoi, RTE.map(O.some))),
   )
 }
@@ -107,6 +116,7 @@ function processFullReview(review: FullReview) {
             RTE.chainFirstReaderTaskKW(() =>
               pipe(
                 {
+                  preprintId: review.preprint.handle.identifier,
                   reviewId: review.uuid,
                   changesNeeded: true,
                 },
@@ -137,6 +147,7 @@ function processFullReview(review: FullReview) {
             RTE.chainFirstReaderTaskKW(changesNeeded =>
               pipe(
                 {
+                  preprintId: review.preprint.handle.identifier,
                   reviewId: review.uuid,
                   changesNeeded: pipe(changesNeeded, O.isSome),
                 },
