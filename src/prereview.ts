@@ -42,7 +42,7 @@ const HandleD = pipe(
 )
 
 const FullReviewD = D.struct({
-  authors: D.readonlyNonEmptyArray(
+  authors: D.readonlyArray(
     D.struct({
       uuid: UuidD,
     }),
@@ -79,11 +79,8 @@ const PersonasD = D.struct({
 const decodeFullReviews = decode(FullReviewsD, 'Unable to decode full reviews from PREreview')
 const decodePersonas = decode(PersonasD, 'Unable to decode personas from PREreview')
 
-const limit = 20
-const offset = 0
-
 const fetchFullReviews = pipe(
-  new URL(`https://www.prereview.org/api/v2/full-reviews?limit=${limit}&offset=${offset}&is_published=true`),
+  new URL(`https://www.prereview.org/api/v2/full-reviews?is_published=true`),
   getRequest,
   send,
   RTE.chainEitherKW(ensureSuccess),

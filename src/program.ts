@@ -47,7 +47,7 @@ function getRecordId(review: FullReview) {
 function createExpectedRecord(review: FullReview, existing: ZenodoRecord) {
   return pipe(
     review.authors,
-    RTE.traverseReadonlyNonEmptyArrayWithIndexSeq((_, author) => pipe(author.uuid, getPersona)),
+    RTE.traverseReadonlyArrayWithIndexSeq((_, author) => pipe(author.uuid, getPersona)),
     RTE.map(
       (authors): ZenodoRecord => ({
         ...existing,
@@ -57,10 +57,13 @@ function createExpectedRecord(review: FullReview, existing: ZenodoRecord) {
           access_right_category: 'success',
           creators: pipe(
             authors,
-            RNEA.map(author => ({
-              name: author.isAnonymous ? 'PREreview.org community member' : author.name,
-              orcid: author.orcid,
-            })),
+            RA.match(
+              () => [{ name: 'PREreview.org community member', orcid: O.none }],
+              RNEA.map(author => ({
+                name: author.isAnonymous ? 'PREreview.org community member' : author.name,
+                orcid: author.orcid,
+              })),
+            ),
           ),
           // description: review.drafts[0].contents,
           license: O.some({
