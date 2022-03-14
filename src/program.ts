@@ -75,6 +75,7 @@ function createExpectedRecord(review: FullReview, existing: ZenodoRecord) {
             ),
           ),
           // description: review.drafts[0].contents,
+          language: O.some('eng'),
           license: O.some({
             id: 'CC-BY-4.0',
           }),
@@ -82,14 +83,16 @@ function createExpectedRecord(review: FullReview, existing: ZenodoRecord) {
             existing.conceptdoi,
             O.map(conceptdoi => [
               {
+                ...review.preprint.handle,
+                relation: 'reviews',
+                resource_type: O.some('publication-preprint'),
+              },
+              {
                 scheme: 'doi',
                 identifier: conceptdoi,
                 relation: 'isVersionOf',
+                resource_type: O.none,
               },
-              // {
-              //   ...review.preprint.handle,
-              //   relation: 'reviews',
-              // },
             ]),
           ),
           resource_type: {

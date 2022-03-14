@@ -61,6 +61,10 @@ const RelationC = c.literal(
   'isVersionOf',
 )
 
+const RelationResourceTypeC = c.literal('publication-preprint')
+
+const LanguageC = c.literal('eng')
+
 const RelatedIdentifierC = pipe(
   c.sum('scheme')({
     arxiv: c.struct({
@@ -87,6 +91,7 @@ const RelatedIdentifierC = pipe(
   c.intersect(
     c.struct({
       relation: RelationC,
+      resource_type: c.optional(RelationResourceTypeC),
     }),
   ),
 )
@@ -166,6 +171,7 @@ export const ZenodoRecordC = c.struct({
       }),
     ),
     description: c.string,
+    language: c.optional(LanguageC),
     license: c.optional(
       c.struct({
         id: c.string,
