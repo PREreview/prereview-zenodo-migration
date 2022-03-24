@@ -10,7 +10,7 @@ import { flow, pipe } from 'fp-ts/function'
 import * as d from 'io-ts/Decoder'
 
 export const run: (effect: TE.TaskEither<Error, unknown>) => Promise<never> = flow(
-  T.chainIOK(E.match(onError, onSuccess)),
+  TE.matchE(T.fromIOK(onError), T.fromIOK(onError)),
   finish,
 )
 
@@ -24,8 +24,8 @@ function finish(task: T.Task<never>): Promise<never> {
 
 export function readEnvironment<A>(decoder: d.Decoder<NodeJS.ProcessEnv, A>): IOE.IOEither<Error, A> {
   return pipe(
-    env,
-    IO.map(decoder.decode),
+    IOE.rightIO(env),
+    IOE.chainEitherK(decoder.decode),
     IOE.mapLeft(flow(d.draw, prepend('Unable to read environment variables:\n'), E.toError)),
   )
 }

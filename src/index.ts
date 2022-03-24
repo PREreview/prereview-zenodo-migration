@@ -1,6 +1,5 @@
 import 'dotenv/config'
 import * as C from 'fp-ts/Console'
-import * as IOE from 'fp-ts/IOEither'
 import * as TE from 'fp-ts/TaskEither'
 import { pipe } from 'fp-ts/function'
 import * as l from 'logger-ts'
@@ -15,13 +14,12 @@ const EnvD = d.struct({
 
 void run(
   pipe(
-    readEnvironment(EnvD),
-    IOE.map(env => ({
+    TE.fromIOEither(readEnvironment(EnvD)),
+    TE.map(env => ({
       fetch: nodeFetch as any,
       logger: pipe(C.error, l.withShow(l.showEntry)),
       zenodoApiKey: env.ZENODO_API_KEY,
     })),
-    TE.fromIOEither,
     TE.chain(program),
   ),
 )

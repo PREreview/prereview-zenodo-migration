@@ -1,5 +1,6 @@
 import { createTwoFilesPatch, parsePatch } from 'diff'
 import * as IOO from 'fp-ts-contrib/IOOption'
+import { replaceAll } from 'fp-ts-std/String'
 import * as C from 'fp-ts/Console'
 import * as E from 'fp-ts/Either'
 import * as O from 'fp-ts/Option'
@@ -9,11 +10,23 @@ import * as RA from 'fp-ts/ReadonlyArray'
 import * as RNEA from 'fp-ts/ReadonlyNonEmptyArray'
 import * as T from 'fp-ts/Task'
 import * as TE from 'fp-ts/TaskEither'
+import * as b from 'fp-ts/boolean'
 import { constant, flow, pipe } from 'fp-ts/function'
+import * as s from 'fp-ts/string'
 import * as l from 'logger-ts'
 import { logError } from './api'
 import { FullReview, getFullReviews, getPersona } from './prereview'
 import { ZenodoRecord, ZenodoRecordC, ZenodoRecordIdFromDoiD, getRecord } from './zenodo'
+
+const skippedReviews = [
+  '60543989-3455-4f1a-bc83-8cc8d7f60cfa', // fake
+  'a4de695e-afb0-46fe-8d13-35fe606f03d2', // fake
+  'cd61075a-3d98-42e2-a35c-19a0ba761d98', // fake
+  'c249632e-501f-4e40-9445-430b155499da', // fake
+  '39731b20-f8a7-47ee-a633-7aa7fa22dc95', // fake
+  'b7fec0fc-0721-4c55-b029-224db1630802', // fake
+  'f2dbaf8d-1d2a-478e-8513-f7b701cd4b3d', // fake
+]
 
 const getRecordIdFromDoi = flow(
   ZenodoRecordIdFromDoiD.decode,
@@ -37,8 +50,7 @@ const getRecordIdFromDoi = flow(
 function getRecordId(review: FullReview) {
   return pipe(
     review.doi,
-    E.fromNullable(new Error('No DOI')),
-    RTE.fromEither,
+    RTE.fromEitherK(E.fromNullable(new Error('No DOI'))),
     RTE.orElseFirstW(() =>
       pipe(
         {
@@ -99,7 +111,7 @@ function createExpectedRecord(review: FullReview, existing: ZenodoRecord) {
             subtype: 'article',
             type: 'publication',
           },
-          title: `Review of ${review.preprint.title}`,
+          title: `Review of ${pipe(review.preprint.title, replaceAll('’')("'"))}`,
         },
       }),
     ),
@@ -141,8 +153,7 @@ function processFullReview(review: FullReview) {
             ),
             RTE.chainIOK(
               flow(
-                O.fromPredicate(flow(parsePatch, patch => patch[0].hunks.length > 0)),
-                IOO.fromOption,
+                IOO.fromOptionK(O.fromPredicate(flow(parsePatch, patch => patch[0].hunks.length > 0))),
                 IOO.chainFirst(flow(C.log, IOO.fromIO)),
                 IOO.map(() => review.uuid),
               ),
@@ -164,12 +175,36 @@ function processFullReview(review: FullReview) {
   )
 }
 
+function maybeProcessFullReview(review: FullReview) {
+  return pipe(
+    RA.elem(s.Eq)(review.uuid, skippedReviews),
+    b.match(
+      () => processFullReview(review),
+      () =>
+        pipe(
+          RTE.of(O.none),
+          RTE.chainFirstReaderTaskKW(() =>
+            pipe(
+              {
+                preprintId: review.preprint.handle.identifier,
+                reviewId: review.uuid,
+                changesNeeded: false,
+              },
+              l.warnP('Skipped processing full review'),
+              R.map(T.fromIO),
+            ),
+          ),
+        ),
+    ),
+  )
+}
+
 const findChangesRequired = pipe(
   getFullReviews,
   RTE.chainFirstReaderTaskKW(
     flow(reviews => ({ number: reviews.length }), l.debugP('Found full reviews'), R.map(T.fromIO)),
   ),
-  RTE.chainW(RTE.traverseSeqArray(processFullReview)),
+  RTE.chainW(RTE.traverseSeqArray(maybeProcessFullReview)),
   RTE.map(RA.compact),
 )
 

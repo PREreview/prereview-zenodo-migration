@@ -1,6 +1,6 @@
+import * as R from 'fp-ts/Reader'
 import * as RTE from 'fp-ts/ReaderTaskEither'
 import * as TE from 'fp-ts/TaskEither'
-import { pipe } from 'fp-ts/function'
 import { Request } from './request'
 
 export type FetchEnv = {
@@ -12,10 +12,7 @@ export class NetworkError extends Error {
 }
 
 export const send: (request: Request) => RTE.ReaderTaskEither<FetchEnv, NetworkError, Response> = ([url, init]) =>
-  pipe(
-    RTE.ask<FetchEnv>(),
-    RTE.chainTaskEitherK(({ fetch }) => TE.tryCatch(() => fetch(url.href, init), toNetworkError)),
-  )
+  R.asks(TE.tryCatchK(({ fetch }: FetchEnv) => fetch(url.href, init), toNetworkError))
 
 function toNetworkError(error: unknown): NetworkError {
   if (error instanceof NetworkError) {
