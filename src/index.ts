@@ -1,8 +1,9 @@
+import { SystemClock } from 'clock-ts'
 import 'dotenv/config'
 import * as C from 'fp-ts/Console'
 import * as TE from 'fp-ts/TaskEither'
 import { pipe } from 'fp-ts/function'
-import * as l from 'logger-ts'
+import * as l from 'logger-fp-ts'
 import nodeFetch from 'node-fetch'
 import { readEnvironment, run } from 'process-ts'
 import * as d from './decoder'
@@ -16,8 +17,9 @@ void run(
   pipe(
     TE.fromIOEither(readEnvironment(EnvD)),
     TE.map(env => ({
+      clock: SystemClock,
       fetch: nodeFetch as any,
-      logger: pipe(C.error, l.withShow(l.showEntry)),
+      logger: pipe(C.error, l.withShow(l.getColoredShow(l.ShowLogEntry))),
       zenodoApiKey: env.ZENODO_API_KEY,
     })),
     TE.chain(program),
