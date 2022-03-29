@@ -12,13 +12,7 @@ export * from 'io-ts/Decoder'
 
 export const isoDateString: d.Decoder<unknown, Date> = pipe(
   d.string,
-  D.parse(date =>
-    pipe(
-      date,
-      parseDate,
-      E.fromOption(() => D.error(date, 'Date')),
-    ),
-  ),
+  D.parse(date => pipe(date, E.fromOptionK(() => D.error(date, 'Date'))(parseDate))),
 )
 
 export const optional: <I, A>(or: d.Decoder<I, A>) => d.Decoder<undefined | I, O.Option<A>> = or =>

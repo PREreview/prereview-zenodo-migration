@@ -1,15 +1,13 @@
 import { createTwoFilesPatch, parsePatch } from 'diff'
 import * as IOO from 'fp-ts-contrib/IOOption'
+import * as RTEC from 'fp-ts-contrib/ReaderTaskEither'
 import { replaceAll } from 'fp-ts-std/String'
 import * as C from 'fp-ts/Console'
 import * as E from 'fp-ts/Either'
 import * as O from 'fp-ts/Option'
-import * as R from 'fp-ts/Reader'
 import * as RTE from 'fp-ts/ReaderTaskEither'
 import * as RA from 'fp-ts/ReadonlyArray'
 import * as RNEA from 'fp-ts/ReadonlyNonEmptyArray'
-import * as T from 'fp-ts/Task'
-import * as TE from 'fp-ts/TaskEither'
 import * as b from 'fp-ts/boolean'
 import { constant, flow, pipe } from 'fp-ts/function'
 import * as s from 'fp-ts/string'
@@ -29,21 +27,8 @@ const skippedReviews = [
 ]
 
 const getRecordIdFromDoi = flow(
-  ZenodoRecordIdFromDoiD.decode,
-  RTE.fromEither,
-  // RTE.chainFirstReaderTaskKW(
-  //   flow(recordId =>
-  //     pipe(
-  //       {
-  //         recordId,
-  //         reviewId: review.uuid,
-  //       },
-  //       l.debugP('Found record ID for review'),
-  //       R.map(T.fromIO),
-  //     ),
-  //   ),
-  // ),
-  RTE.orElseFirst(logError('Unable to turn DOI into Zenodo record ID')),
+  RTE.fromEitherK(ZenodoRecordIdFromDoiD.decode),
+  RTE.orElseFirstW(logError('Unable to turn DOI into Zenodo record ID')),
   RTE.mapLeft(constant(new Error('Unable to turn DOI into Zenodo record ID'))),
 )
 
@@ -51,14 +36,15 @@ function getRecordId(review: FullReview) {
   return pipe(
     review.doi,
     RTE.fromEitherK(E.fromNullable(new Error('No DOI'))),
-    RTE.orElseFirstW(() =>
-      pipe(
-        {
-          preprintId: review.preprint.handle.identifier,
-          reviewId: review.uuid,
-        },
-        l.warnP('No DOI'),
-        R.map(TE.rightIO),
+    RTE.orElseFirstW(
+      RTEC.fromReaderIOK(() =>
+        pipe(
+          {
+            preprintId: review.preprint.handle.identifier,
+            reviewId: review.uuid,
+          },
+          l.warnP('No DOI'),
+        ),
       ),
     ),
     RTE.matchE(() => RTE.right(O.none), flow(getRecordIdFromDoi, RTE.map(O.some))),
@@ -128,7 +114,7 @@ function processFullReview(review: FullReview) {
         () =>
           pipe(
             RTE.right(O.some(review.uuid)),
-            RTE.chainFirstReaderTaskKW(() =>
+            RTEC.chainFirstReaderIOKW(() =>
               pipe(
                 {
                   preprintId: review.preprint.handle.identifier,
@@ -136,7 +122,6 @@ function processFullReview(review: FullReview) {
                   changesNeeded: true,
                 },
                 l.warnP('Skipped processing full review'),
-                R.map(T.fromIO),
               ),
             ),
           ),
@@ -154,19 +139,19 @@ function processFullReview(review: FullReview) {
             RTE.chainIOK(
               flow(
                 IOO.fromOptionK(O.fromPredicate(flow(parsePatch, patch => patch[0].hunks.length > 0))),
-                IOO.chainFirst(flow(C.log, IOO.fromIO)),
+                IOO.chainFirstIOK(C.log),
                 IOO.map(() => review.uuid),
               ),
             ),
-            RTE.chainFirstReaderTaskKW(changesNeeded =>
-              pipe(
-                {
+            RTEC.chainFirstReaderIOKW(
+              flow(
+                O.isSome,
+                changesNeeded => ({
                   preprintId: review.preprint.handle.identifier,
                   reviewId: review.uuid,
-                  changesNeeded: pipe(changesNeeded, O.isSome),
-                },
+                  changesNeeded,
+                }),
                 l.debugP('Processed full review'),
-                R.map(T.fromIO),
               ),
             ),
           ),
@@ -182,18 +167,13 @@ function maybeProcessFullReview(review: FullReview) {
       () => processFullReview(review),
       () =>
         pipe(
-          RTE.of(O.none),
-          RTE.chainFirstReaderTaskKW(() =>
-            pipe(
-              {
-                preprintId: review.preprint.handle.identifier,
-                reviewId: review.uuid,
-                changesNeeded: false,
-              },
-              l.warnP('Skipped processing full review'),
-              R.map(T.fromIO),
-            ),
-          ),
+          {
+            preprintId: review.preprint.handle.identifier,
+            reviewId: review.uuid,
+            changesNeeded: false,
+          },
+          RTEC.fromReaderIOK(l.warnP('Skipped processing full review')),
+          RTE.map(() => O.none),
         ),
     ),
   )
@@ -201,19 +181,17 @@ function maybeProcessFullReview(review: FullReview) {
 
 const findChangesRequired = pipe(
   getFullReviews,
-  RTE.chainFirstReaderTaskKW(
-    flow(reviews => ({ number: reviews.length }), l.debugP('Found full reviews'), R.map(T.fromIO)),
-  ),
+  RTEC.chainFirstReaderIOKW(flow(reviews => ({ number: reviews.length }), l.debugP('Found full reviews'))),
   RTE.chainW(RTE.traverseSeqArray(maybeProcessFullReview)),
   RTE.map(RA.compact),
 )
 
 export const program = pipe(
   findChangesRequired,
-  RTE.chainReaderTaskKW(
+  RTEC.chainReaderIOKW(
     RA.match(
-      () => pipe(l.info('🎉 Nothing to do'), R.map(T.fromIO)),
-      flow(fullReviews => ({ fullReviews }), l.infoP('👀 Changes needed'), R.map(T.fromIO)),
+      () => pipe(l.info('🎉 Nothing to do')),
+      flow(fullReviews => ({ fullReviews }), l.infoP('👀 Changes needed')),
     ),
   ),
 )
