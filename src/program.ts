@@ -128,17 +128,16 @@ function processFullReview(review: FullReview) {
         record =>
           pipe(
             createExpectedRecord(review, record),
-            RTE.map(expectedRecord =>
-              createTwoFilesPatch(
-                record.links.latest.href,
-                `https://www.prereview.org/api/v2/full-reviews/${review.uuid}`,
-                JSON.stringify(ZenodoRecordC.encode(record), null, 2) + '\n',
-                JSON.stringify(ZenodoRecordC.encode(expectedRecord), null, 2) + '\n',
-              ),
-            ),
             RTE.chainIOK(
               flow(
-                IOO.fromOptionK(O.fromPredicate(flow(parsePatch, patch => patch[0].hunks.length > 0))),
+                expectedRecord =>
+                  createTwoFilesPatch(
+                    record.links.latest.href,
+                    `https://www.prereview.org/api/v2/full-reviews/${review.uuid}`,
+                    JSON.stringify(ZenodoRecordC.encode(record), null, 2) + '\n',
+                    JSON.stringify(ZenodoRecordC.encode(expectedRecord), null, 2) + '\n',
+                  ),
+                IOO.fromPredicate(flow(parsePatch, patch => patch[0].hunks.length > 0)),
                 IOO.chainFirstIOK(C.log),
                 IOO.map(() => review.uuid),
               ),
