@@ -1,8 +1,9 @@
 import { ArxivIdC } from 'arxiv-ts'
 import { Doi, DoiC } from 'doi-ts'
-import { FetchEnv, Request, ensureSuccess, getRequest, send, withHeader } from 'fetch-fp-ts'
+import { FetchEnv, Request, hasStatus, send, setHeader } from 'fetch-fp-ts'
 import * as RTE from 'fp-ts/ReaderTaskEither'
-import { constant, flow, pipe } from 'fp-ts/function'
+import { constant, flow, identity, pipe } from 'fp-ts/function'
+import { StatusCodes } from 'http-status-codes'
 import { OrcidC } from 'orcid-ts'
 import { UrlC, withQuery } from 'url-ts'
 import { decode, logError } from './api'
@@ -194,7 +195,7 @@ export type ZenodoRecord = c.TypeOf<typeof ZenodoRecordC>
 const fetchFromZenodo = (request: Request) =>
   pipe(
     RTE.ask<FetchEnv & ZenodoEnv>(),
-    RTE.map(({ zenodoApiKey }) => pipe(request, withHeader('Authorization', `Bearer ${zenodoApiKey}`))),
+    RTE.map(({ zenodoApiKey }) => pipe(request, setHeader('Authorization', `Bearer ${zenodoApiKey}`))),
     RTE.chainW(send),
   )
 
@@ -202,9 +203,9 @@ const recordUrl = (id: PositiveInt) => new URL(id.toString(), 'https://zenodo.or
 
 const fetchRecord = flow(
   recordUrl,
-  getRequest,
+  Request('GET'),
   fetchFromZenodo,
-  RTE.chainEitherKW(ensureSuccess),
+  RTE.filterOrElseW(hasStatus(StatusCodes.OK), identity),
   RTE.orElseFirstW(logError('Unable to fetch record from Zenodo')),
 )
 
@@ -219,9 +220,9 @@ export const getRecord = flow(
 
 export const search = flow(
   withQuery(`https://zenodo.org/api/records/`),
-  getRequest,
+  Request('GET'),
   fetchFromZenodo,
-  RTE.chainEitherKW(ensureSuccess),
+  RTE.filterOrElseW(hasStatus(StatusCodes.OK), identity),
   RTE.orElseFirstW(logError('Unable to search Zenodo')),
   RTE.chainW(decodeRecords),
   RTE.bimap(constant(new Error('Unable to read from Zenodo')), results => results.hits.hits),

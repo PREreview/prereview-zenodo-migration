@@ -1,8 +1,9 @@
 import { ArxivIdD } from 'arxiv-ts'
 import { DoiD } from 'doi-ts'
-import { ensureSuccess, getRequest, send } from 'fetch-fp-ts'
+import { Request, hasStatus, send } from 'fetch-fp-ts'
 import * as RTE from 'fp-ts/ReaderTaskEither'
-import { constant, flow, pipe } from 'fp-ts/function'
+import { constant, flow, identity, pipe } from 'fp-ts/function'
+import { StatusCodes } from 'http-status-codes'
 import { OrcidD } from 'orcid-ts'
 import { Uuid, UuidD } from '../packages/uuid-ts'
 import { decode, logError } from './api'
@@ -81,9 +82,9 @@ const decodePersonas = decode(PersonasD, 'Unable to decode personas from PRErevi
 
 const fetchFullReviews = pipe(
   new URL(`https://www.prereview.org/api/v2/full-reviews?is_published=true`),
-  getRequest,
+  Request('GET'),
   send,
-  RTE.chainEitherKW(ensureSuccess),
+  RTE.filterOrElseW(hasStatus(StatusCodes.OK), identity),
   RTE.orElseFirstW(logError('Unable to fetch record from Zenodo')),
 )
 
@@ -95,9 +96,9 @@ export const getFullReviews = pipe(
 
 const fetchPersona = flow(
   (uuid: Uuid) => new URL(uuid, 'https://www.prereview.org/api/v2/personas/'),
-  getRequest,
+  Request('GET'),
   send,
-  RTE.chainEitherKW(ensureSuccess),
+  RTE.filterOrElseW(hasStatus(StatusCodes.OK), identity),
   RTE.orElseFirstW(logError('Unable to fetch persona from Zenodo')),
 )
 

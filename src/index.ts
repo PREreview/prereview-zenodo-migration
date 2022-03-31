@@ -18,7 +18,7 @@ void run(
     TE.fromIOEither(readEnvironment(EnvD)),
     TE.map(env => ({
       clock: SystemClock,
-      fetch: nodeFetch as any,
+      fetch: nodeFetch,
       logger: pipe(C.error, l.withShow(l.getColoredShow(l.ShowLogEntry))),
       zenodoApiKey: env.ZENODO_API_KEY,
     })),
