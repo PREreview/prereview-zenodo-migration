@@ -1,9 +1,9 @@
 import { Response, getText } from 'fetch-fp-ts'
 import * as RTEC from 'fp-ts-contrib/ReaderTaskEither'
 import * as E from 'fp-ts/Either'
-import { Json, parse } from 'fp-ts/Json'
+import { Json } from 'fp-ts/Json'
 import * as RTE from 'fp-ts/ReaderTaskEither'
-import { flow } from 'fp-ts/function'
+import { flow, pipe } from 'fp-ts/function'
 import * as l from 'logger-fp-ts'
 import * as d from './decoder'
 import { errorToJson } from './errors'
@@ -16,8 +16,7 @@ export const logError = (message: string) => RTEC.fromReaderIOK(flow(errorToJson
 export function decode<A>(decoder: d.Decoder<Json, A>, message: string): Decoder<A> {
   return flow(
     RTE.fromTaskEitherK(getText(E.toError)),
-    RTE.chainEitherK(flow(parse, E.mapLeft(E.toError))),
-    RTE.chainEitherKW(decoder.decode),
+    RTE.chainEitherKW(pipe(d.json, d.compose(decoder)).decode),
     RTE.orElseFirst(logError(message)),
   )
 }

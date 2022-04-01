@@ -1,6 +1,7 @@
 import { parseDate } from 'fp-ts-std/Date'
 import * as A from 'fp-ts/Array'
 import * as E from 'fp-ts/Either'
+import { Json, parse } from 'fp-ts/Json'
 import * as NEA from 'fp-ts/NonEmptyArray'
 import * as O from 'fp-ts/Option'
 import * as RNEA from 'fp-ts/ReadonlyNonEmptyArray'
@@ -9,6 +10,19 @@ import * as D from 'io-ts/Decoder'
 import * as d from 'io-ts/Decoder'
 
 export * from 'io-ts/Decoder'
+
+export const json: d.Decoder<unknown, Json> = {
+  decode: i =>
+    pipe(
+      d.string.decode(i),
+      E.chain(
+        flow(
+          parse,
+          E.altW(() => d.failure(i, 'JSON')),
+        ),
+      ),
+    ),
+}
 
 export const isoDateString: d.Decoder<unknown, Date> = pipe(
   d.string,
