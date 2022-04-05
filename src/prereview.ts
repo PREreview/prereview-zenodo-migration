@@ -5,9 +5,11 @@ import * as RTE from 'fp-ts/ReaderTaskEither'
 import { constant, flow, identity, pipe } from 'fp-ts/function'
 import { StatusCodes } from 'http-status-codes'
 import { OrcidD } from 'orcid-ts'
-import { Uuid, UuidD } from '../packages/uuid-ts'
+import { Uuid, isUuid } from 'uuid-ts'
 import { decode, logError } from './api'
 import * as D from './decoder'
+
+const UuidD = pipe(D.string, D.refine(isUuid, 'Uuid'))
 
 /*const sandboxDois = {
   '10.5281/zenodo.5933728': '10.5072/zenodo.1005912' as Doi,

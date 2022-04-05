@@ -19,7 +19,7 @@
     "node-fetch": "^2.6.7",
     "orcid-ts": "*",
     "process-ts": "*",
-    "uuid-ts": "*"
+    "uuid-ts": "^0.1.0"
   },
   "devDependencies": {
     "@trivago/prettier-plugin-sort-imports": "^3.1.1",
