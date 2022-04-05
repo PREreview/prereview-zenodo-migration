@@ -1,13 +1,14 @@
 import { createTwoFilesPatch, parsePatch } from 'diff'
 import * as IOO from 'fp-ts-contrib/IOOption'
 import * as RTEC from 'fp-ts-contrib/ReaderTaskEither'
-import { replaceAll } from 'fp-ts-std/String'
+import { prepend, replaceAll } from 'fp-ts-std/String'
 import * as C from 'fp-ts/Console'
 import * as E from 'fp-ts/Either'
 import * as O from 'fp-ts/Option'
 import * as RTE from 'fp-ts/ReaderTaskEither'
 import * as RA from 'fp-ts/ReadonlyArray'
 import * as RNEA from 'fp-ts/ReadonlyNonEmptyArray'
+import * as RR from 'fp-ts/ReadonlyRecord'
 import * as b from 'fp-ts/boolean'
 import { constant, flow, pipe } from 'fp-ts/function'
 import * as s from 'fp-ts/string'
@@ -25,6 +26,11 @@ const skippedReviews = [
   'b7fec0fc-0721-4c55-b029-224db1630802', // fake
   'f2dbaf8d-1d2a-478e-8513-f7b701cd4b3d', // fake
 ]
+
+const fixedTitles = {
+  'dbfa6616-cc1c-4a82-b2ff-b97502ca94a0':
+    'Spreading of a virulence lipid into host membranes promotes mycobacterial pathogenesis',
+}
 
 const getRecordIdFromDoi = flow(
   RTE.fromEitherK(ZenodoRecordIdFromDoiD.decode),
@@ -48,6 +54,15 @@ function getRecordId(review: FullReview) {
       ),
     ),
     RTE.matchE(() => RTE.right(O.none), flow(getRecordIdFromDoi, RTE.map(O.some))),
+  )
+}
+
+function getTitle(review: FullReview) {
+  return pipe(
+    RR.lookup(review.uuid, fixedTitles),
+    O.getOrElse(() => review.preprint.title),
+    replaceAll('’')("'"),
+    prepend('Review of '),
   )
 }
 
@@ -97,7 +112,7 @@ function createExpectedRecord(review: FullReview, existing: ZenodoRecord) {
             subtype: 'article',
             type: 'publication',
           },
-          title: `Review of ${pipe(review.preprint.title, replaceAll('’')("'"))}`,
+          title: getTitle(review),
         },
       }),
     ),
