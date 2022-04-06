@@ -87,7 +87,6 @@ function createExpectedRecord(review: FullReview, existing: ZenodoRecord) {
               })),
             ),
           ),
-          // description: review.drafts[0].contents,
           language: O.some('eng'),
           license: O.some({
             id: 'CC-BY-4.0',
@@ -204,7 +203,7 @@ export const program = pipe(
   findChangesRequired,
   RTEC.chainReaderIOKW(
     RA.match(
-      () => pipe(l.info('🎉 Nothing to do')),
+      () => l.info('🎉 Nothing to do'),
       flow(fullReviews => ({ fullReviews }), l.infoP('👀 Changes needed')),
     ),
   ),

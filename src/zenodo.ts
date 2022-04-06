@@ -202,7 +202,7 @@ const fetchFromZenodo = (request: Request) =>
     RTE.chainW(send),
   )
 
-const recordUrl = (id: PositiveInt) => new URL(id.toString(), 'https://zenodo.org/api/records/') // https://sandbox.zenodo.org/api/records/
+const recordUrl = (id: PositiveInt) => new URL(id.toString(), 'https://zenodo.org/api/records/')
 
 const fetchRecord = flow(
   recordUrl,

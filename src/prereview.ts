@@ -12,14 +12,6 @@ import * as D from './decoder'
 const DoiD = D.fromRefinement(isDoi, 'DOI')
 const UuidD = D.fromRefinement(isUuid, 'UUID')
 
-/*const sandboxDois = {
-  '10.5281/zenodo.5933728': '10.5072/zenodo.1005912' as Doi,
-}
-
-const sandboxDoiRewrite = D.parse((doi: Doi) =>
-  D.success(doi in sandboxDois ? sandboxDois[doi as keyof typeof sandboxDois] : doi),
-)*/
-
 const HandleD = pipe(
   D.string,
   D.parse((handle: string) => {
@@ -51,7 +43,7 @@ const FullReviewD = D.struct({
       uuid: UuidD,
     }),
   ),
-  doi: D.nullable(DoiD) /*pipe(DoiD , sandboxDoiRewrite),*/,
+  doi: D.nullable(DoiD),
   drafts: D.readonlyNonEmptyArray(
     D.struct({
       contents: D.string,
