@@ -32,6 +32,6 @@
   },
   "scripts": {
     "format": "prettier --ignore-unknown --write '**'",
-    "start": "ts-node src/index.ts"
+    "start": "ts-node src/index.ts > results.txt"
   }
 }
