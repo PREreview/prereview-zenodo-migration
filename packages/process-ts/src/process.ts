@@ -38,10 +38,6 @@ function onError(error: unknown): IO.IO<never> {
   )
 }
 
-function onSuccess(): IO.IO<never> {
-  return exitProcess(0)
-}
-
 function exitProcess(code: number): IO.IO<never> {
   return () => process.exit(code)
 }

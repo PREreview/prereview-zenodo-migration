@@ -12,14 +12,6 @@ export const UrlE: e.Encoder<string, URL> = {
 
 export const UrlC = c.make(UrlD, UrlE)
 
-export function withQuery(base: string) {
-  return (query: URLSearchParams) => new URL(`?${query}`, base)
-}
-
-export function withBase(base: string) {
-  return (input: string) => new URL(input, base)
-}
-
 export function toString(url: URL): string {
   return url.href
 }

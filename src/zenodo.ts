@@ -5,7 +5,7 @@ import * as RTE from 'fp-ts/ReaderTaskEither'
 import { constant, flow, identity, pipe } from 'fp-ts/function'
 import { StatusCodes } from 'http-status-codes'
 import { OrcidC } from 'orcid-ts'
-import { UrlC, withQuery } from 'url-ts'
+import { UrlC } from 'url-ts'
 import { decode, logError } from './api'
 import * as c from './codec'
 import * as d from './decoder'
@@ -187,12 +187,6 @@ export const ZenodoRecordC = c.struct({
   }),
 })
 
-const ZenodoRecordsC = c.struct({
-  hits: c.struct({
-    hits: c.readonlyArray(ZenodoRecordC),
-  }),
-})
-
 export type ZenodoRecord = c.TypeOf<typeof ZenodoRecordC>
 
 const fetchFromZenodo = (request: Request) =>
@@ -213,20 +207,9 @@ const fetchRecord = flow(
 )
 
 const decodeRecord = decode(ZenodoRecordC, 'Unable to decode record from Zenodo')
-const decodeRecords = decode(ZenodoRecordsC, 'Unable to decode records from Zenodo')
 
 export const getRecord = flow(
   fetchRecord,
   RTE.chainW(decodeRecord),
   RTE.mapLeft(constant(new Error('Unable to read from Zenodo'))),
-)
-
-export const search = flow(
-  withQuery(`https://zenodo.org/api/records/`),
-  Request('GET'),
-  fetchFromZenodo,
-  RTE.filterOrElseW(hasStatus(StatusCodes.OK), identity),
-  RTE.orElseFirstW(logError('Unable to search Zenodo')),
-  RTE.chainW(decodeRecords),
-  RTE.bimap(constant(new Error('Unable to read from Zenodo')), results => results.hits.hits),
 )

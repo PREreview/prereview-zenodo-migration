@@ -2,7 +2,6 @@ import { isPositive } from 'fp-ts-std/Number'
 import { pipe } from 'fp-ts/function'
 import * as c from 'io-ts/Codec'
 import * as d from './decoder'
-import * as e from './encoder'
 
 type Int = number & IntBrand
 type PositiveNumber = number & PositiveBrand
@@ -19,8 +18,6 @@ export const NumberFromStringD = pipe(
     return isNaN(n) || s.trim() === '' ? d.failure(s, 'Not a number') : d.success(n)
   }),
 )
-
-export const NumberFromStringC = c.make(NumberFromStringD, e.string)
 
 const IntD = pipe(d.number, d.refine(isInteger, 'IntD'))
 
