@@ -1,5 +1,5 @@
 import { ArxivIdD } from 'arxiv-ts'
-import { DoiD } from 'doi-ts'
+import { isDoi } from 'doi-ts'
 import { Request, hasStatus, send } from 'fetch-fp-ts'
 import * as RTE from 'fp-ts/ReaderTaskEither'
 import { constant, flow, identity, pipe } from 'fp-ts/function'
@@ -9,7 +9,8 @@ import { Uuid, isUuid } from 'uuid-ts'
 import { decode, logError } from './api'
 import * as D from './decoder'
 
-const UuidD = pipe(D.string, D.refine(isUuid, 'Uuid'))
+const DoiD = D.fromRefinement(isDoi, 'DOI')
+const UuidD = D.fromRefinement(isUuid, 'UUID')
 
 /*const sandboxDois = {
   '10.5281/zenodo.5933728': '10.5072/zenodo.1005912' as Doi,

@@ -1,5 +1,5 @@
 import { ArxivIdC } from 'arxiv-ts'
-import { Doi, DoiC } from 'doi-ts'
+import { Doi, isDoi } from 'doi-ts'
 import { FetchEnv, Request, hasStatus, send, setHeader } from 'fetch-fp-ts'
 import * as RTE from 'fp-ts/ReaderTaskEither'
 import { constant, flow, identity, pipe } from 'fp-ts/function'
@@ -10,6 +10,9 @@ import { decode, logError } from './api'
 import * as c from './codec'
 import * as d from './decoder'
 import { NumberFromStringD, PositiveInt, PositiveIntC, PositiveIntD } from './number'
+
+const DoiD = d.fromRefinement(isDoi, 'DOI')
+const DoiC = c.fromDecoder(DoiD)
 
 export type ZenodoEnv = {
   zenodoApiKey: string
