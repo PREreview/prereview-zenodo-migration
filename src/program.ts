@@ -77,6 +77,11 @@ function createExpectedRecord(review: FullReview, existing: ZenodoRecord) {
           ...existing.metadata,
           access_right: 'open',
           access_right_category: 'success',
+          communities: O.some([
+            {
+              id: 'prereview-reviews',
+            },
+          ]),
           creators: pipe(
             authors,
             RA.match(

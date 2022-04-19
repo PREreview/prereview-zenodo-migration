@@ -168,6 +168,13 @@ export const ZenodoRecordC = c.struct({
   metadata: c.struct({
     access_right: c.literal('open', 'embargoed', 'restricted', 'closed'),
     access_right_category: c.literal('danger', 'success', 'warning'),
+    communities: c.optional(
+      c.readonlyNonEmptyArray(
+        c.struct({
+          id: c.string,
+        }),
+      ),
+    ),
     creators: c.readonlyNonEmptyArray(
       c.struct({
         name: c.string,
