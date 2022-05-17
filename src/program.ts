@@ -62,6 +62,9 @@ function getTitle(review: FullReview) {
     RR.lookup(review.uuid, fixedTitles),
     O.getOrElse(() => review.preprint.title),
     replaceAll('’')("'"),
+    replaceAll('‘')("'"),
+    replaceAll('“')('"'),
+    replaceAll('”')('"'),
     prepend('Review of '),
   )
 }
