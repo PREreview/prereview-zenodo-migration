@@ -1,6 +1,7 @@
 import { SystemClock } from 'clock-ts'
 import 'dotenv/config'
 import * as C from 'fp-ts/Console'
+import * as E from 'fp-ts/Either'
 import * as TE from 'fp-ts/TaskEither'
 import { pipe } from 'fp-ts/function'
 import * as l from 'logger-fp-ts'
@@ -23,5 +24,6 @@ void run(
       zenodoApiKey: env.ZENODO_API_KEY,
     })),
     TE.chain(program),
+    TE.mapLeft(E.toError),
   ),
 )

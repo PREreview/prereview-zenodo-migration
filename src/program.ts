@@ -1,21 +1,35 @@
 import { createTwoFilesPatch, parsePatch } from 'diff'
+import { Doi } from 'doi-ts'
 import * as IOO from 'fp-ts-contrib/IOOption'
 import * as RTEC from 'fp-ts-contrib/ReaderTaskEither'
 import { prepend, replaceAll } from 'fp-ts-std/String'
+import * as A from 'fp-ts/Array'
 import * as C from 'fp-ts/Console'
 import * as E from 'fp-ts/Either'
+import * as NEA from 'fp-ts/NonEmptyArray'
 import * as O from 'fp-ts/Option'
 import * as RTE from 'fp-ts/ReaderTaskEither'
 import * as RA from 'fp-ts/ReadonlyArray'
-import * as RNEA from 'fp-ts/ReadonlyNonEmptyArray'
 import * as RR from 'fp-ts/ReadonlyRecord'
 import * as b from 'fp-ts/boolean'
 import { constant, flow, pipe } from 'fp-ts/function'
 import * as s from 'fp-ts/string'
+import * as D from 'io-ts/Decoder'
 import * as l from 'logger-fp-ts'
+import { Record, RecordC, getRecord } from 'zenodo-ts'
 import { logError } from './api'
+import { NumberFromStringD, PositiveInt, PositiveIntD } from './number'
 import { FullReview, getFullReviews, getPersona } from './prereview'
-import { ZenodoRecord, ZenodoRecordC, ZenodoRecordIdFromDoiD, getRecord } from './zenodo'
+
+const ZenodoRecordIdFromDoiD: D.Decoder<Doi, PositiveInt> = {
+  decode: doi => {
+    const [, id] = doi.match(/^10\.(?:5072|5281|)\/zenodo\.([1-9][0-9]*)$/) ?? []
+
+    return id
+      ? pipe(NumberFromStringD, D.compose(PositiveIntD)).decode(id)
+      : D.failure(doi, 'a DOI with a Zenodo record ID')
+  },
+}
 
 const skippedReviews = [
   '60543989-3455-4f1a-bc83-8cc8d7f60cfa', // fake
@@ -69,52 +83,46 @@ function getTitle(review: FullReview) {
   )
 }
 
-function createExpectedRecord(review: FullReview, existing: ZenodoRecord) {
+function createExpectedRecord(review: FullReview, existing: Record) {
   return pipe(
     review.authors,
     RTE.traverseReadonlyArrayWithIndexSeq((_, author) => pipe(author.uuid, getPersona)),
     RTE.map(
-      (authors): ZenodoRecord => ({
+      (authors): Record => ({
         ...existing,
         metadata: {
           ...existing.metadata,
-          access_right: 'open',
-          access_right_category: 'success',
-          communities: O.some([
+          communities: [
             {
               id: 'prereview-reviews',
             },
-          ]),
+          ],
           creators: pipe(
-            authors,
-            RA.match(
-              () => [{ name: 'PREreview.org community member', orcid: O.none }],
-              RNEA.map(author => ({
+            [...authors],
+            A.matchW(
+              () => [{ name: 'PREreview.org community member' }],
+              NEA.map(author => ({
                 name: author.isAnonymous ? 'PREreview.org community member' : author.name,
-                orcid: author.orcid,
+                orcid: O.toUndefined(author.orcid),
               })),
             ),
           ),
-          language: O.some('eng'),
-          license: O.some({
+          language: 'eng',
+          license: {
             id: 'CC-BY-4.0',
-          }),
-          related_identifiers: pipe(
-            existing.conceptdoi,
-            O.map(conceptdoi => [
-              {
-                ...review.preprint.handle,
-                relation: 'reviews',
-                resource_type: O.some('publication-preprint'),
-              },
-              {
-                scheme: 'doi',
-                identifier: conceptdoi,
-                relation: 'isVersionOf',
-                resource_type: O.none,
-              },
-            ]),
-          ),
+          },
+          related_identifiers: [
+            {
+              ...review.preprint.handle,
+              relation: 'reviews',
+              resource_type: 'publication-preprint',
+            },
+            {
+              scheme: 'doi',
+              identifier: existing.conceptdoi,
+              relation: 'isVersionOf',
+            },
+          ],
           resource_type: {
             subtype: 'article',
             type: 'publication',
@@ -130,7 +138,7 @@ function processFullReview(review: FullReview) {
   return pipe(
     review,
     getRecordId,
-    RTE.chain(O.fold(() => RTE.right(O.none), flow(getRecord, RTE.map(O.some)))),
+    RTE.chainW(O.fold(() => RTE.right(O.none), flow(getRecord, RTE.map(O.some)))),
     RTE.chainW(
       O.fold(
         () =>
@@ -156,8 +164,8 @@ function processFullReview(review: FullReview) {
                   createTwoFilesPatch(
                     record.links.latest.href,
                     `https://www.prereview.org/api/v2/full-reviews/${review.uuid}`,
-                    JSON.stringify(ZenodoRecordC.encode(record), null, 2) + '\n',
-                    JSON.stringify(ZenodoRecordC.encode(expectedRecord), null, 2) + '\n',
+                    JSON.stringify(JSON.parse(RecordC.encode(record)), null, 2) + '\n',
+                    JSON.stringify(JSON.parse(RecordC.encode(expectedRecord)), null, 2) + '\n',
                   ),
                 IOO.fromPredicate(flow(parsePatch, patch => patch[0].hunks.length > 0)),
                 IOO.chainFirstIOK(C.log),
