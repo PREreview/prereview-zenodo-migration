@@ -17,7 +17,7 @@
     "io-ts": "^2.2.16",
     "logger-fp-ts": "^0.2.0",
     "node-fetch": "^2.6.7",
-    "orcid-ts": "*",
+    "orcid-id-ts": "^0.1.0",
     "process-ts": "*",
     "uuid-ts": "^0.1.0",
     "zenodo-ts": "^0.1.4"

@@ -4,12 +4,13 @@ import { Request, hasStatus, send } from 'fetch-fp-ts'
 import * as RTE from 'fp-ts/ReaderTaskEither'
 import { constant, flow, identity, pipe } from 'fp-ts/function'
 import { StatusCodes } from 'http-status-codes'
-import { OrcidD } from 'orcid-ts'
+import { isOrcid } from 'orcid-id-ts'
 import { Uuid, isUuid } from 'uuid-ts'
 import { decode, logError } from './api'
 import * as D from './decoder'
 
 const DoiD = D.fromRefinement(isDoi, 'DOI')
+const OrcidD = D.fromRefinement(isOrcid, 'DOI')
 const UuidD = D.fromRefinement(isUuid, 'UUID')
 
 const HandleD = pipe(
