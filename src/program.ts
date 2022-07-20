@@ -103,7 +103,7 @@ function createExpectedRecord(review: FullReview, existing: Record) {
             A.matchW(
               () => [{ name: 'PREreview.org community member' }],
               NEA.map(author => ({
-                name: author.isAnonymous ? 'PREreview.org community member' : author.name,
+                name: author.isAnonymous ? 'PREreview.org community member' : author.name.trim(),
                 orcid: O.toUndefined(author.orcid),
               })),
             ),
